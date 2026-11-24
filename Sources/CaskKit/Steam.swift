@@ -66,7 +66,7 @@ public enum WindowsSteam {
         let setup = try Components.prepare(backend, bottle: bottle, runtime: runtime)
 
         let marker = bottle.url.appendingPathComponent(".cask-steam-graphics")
-        let signature = setup.dllOverrides.joined(separator: ";")
+        let signature = "v2;" + setup.dllOverrides.joined(separator: ";")
         if (try? String(contentsOf: marker, encoding: .utf8)) == signature { return setup }
 
         let overridesKey = #"HKCU\Software\Wine\DllOverrides"#
@@ -78,7 +78,7 @@ public enum WindowsSteam {
                 try Wine.regAdd(bottle, key: overridesKey, value: String(dll), data: mode)
             }
         }
-        for exe in ["steam.exe", "steamwebhelper.exe"] {
+        for exe in ["steam.exe", "steamwebhelper.exe", "steamwebhelper.real.exe"] {
             let key = #"HKCU\Software\Wine\AppDefaults\"# + exe + #"\DllOverrides"#
             for dll in ["dxgi", "d3d10core", "d3d11", "d3d12", "d3d12core"] {
                 try Wine.regAdd(bottle, key: key, value: dll, data: "builtin")
@@ -88,12 +88,52 @@ public enum WindowsSteam {
         return setup
     }
 
+    /// Steam's UI fails under free Wine on macOS unless Chromium's GPU work runs in-process
+    /// ("Unexpected Transport Error" 0x3008). Steam can't pass Chromium flags, so swap in Cask's wrapper,
+    /// which starts the real helper with `webhelperArguments`. Re-applied on every launch because
+    /// Steam updates overwrite steamwebhelper.exe. Empty arguments restore the original helper.
+    public static func applyWebhelperFix(_ bottle: Bottle) throws {
+        guard let steamDir = steamExe(in: bottle)?.deletingLastPathComponent() else { return }
+        let cef = steamDir.appendingPathComponent("bin/cef")
+        let helpers = (FileManager.default.enumerator(at: cef, includingPropertiesForKeys: nil)?.allObjects as? [URL] ?? [])
+            .filter { $0.lastPathComponent.lowercased() == "steamwebhelper.exe" }
+        guard !helpers.isEmpty else { return }
+        let enabled = !bottle.config.webhelperArguments.isEmpty
+
+        guard let wrapperURL = CaskPaths.resource("cask-webhelper.exe"),
+              let wrapper = try? Data(contentsOf: wrapperURL) else {
+            if enabled { Log.append("webhelper fix: cask-webhelper.exe missing from the app bundle", to: bottle.logURL) }
+            return
+        }
+        for helper in helpers {
+            let dir = helper.deletingLastPathComponent()
+            let real = dir.appendingPathComponent("steamwebhelper.real.exe")
+            let isWrapper = (try? Data(contentsOf: helper)) == wrapper
+            if enabled {
+                if !isWrapper {
+                    // Fresh helper (first run or Steam update): it becomes the real one.
+                    if FS.exists(real) { try FileManager.default.removeItem(at: real) }
+                    try FileManager.default.moveItem(at: helper, to: real)
+                    try wrapper.write(to: helper)
+                    Log.append("webhelper fix installed in \(dir.lastPathComponent)", to: bottle.logURL)
+                }
+                let args = bottle.config.webhelperArguments.joined(separator: " ")
+                try Data(args.utf8).write(to: dir.appendingPathComponent("steamwebhelper.cask-args"))
+            } else if isWrapper, FS.exists(real) {
+                try FileManager.default.removeItem(at: helper)
+                try FileManager.default.moveItem(at: real, to: helper)
+                Log.append("webhelper fix removed in \(dir.lastPathComponent)", to: bottle.logURL)
+            }
+        }
+    }
+
     /// Starts Windows Steam (optionally with extra arguments such as `-applaunch 400`).
     /// With `detach`, Steam outlives the calling process even if the caller is killed.
     public static func launch(arguments: [String] = [], detach: Bool = false) throws {
         guard let bottle, let exe = steamExe(in: bottle) else { throw CaskError("Windows Steam isn't installed. Run `cask steam install`.") }
         let runtime = try Wine.requireRuntime(bottle)
         let setup = try applyGraphics(bottle, runtime: runtime)
+        do { try applyWebhelperFix(bottle) } catch { Log.append("webhelper fix failed: \(error)", to: bottle.logURL) }
         // Overrides live in the registry for this bottle; the env var would override AppDefaults.
         let env = Wine.environment(for: bottle, runtime: setup.runtime, extra: setup.environment)
         let args = [exe.path] + bottle.config.steamArguments + arguments

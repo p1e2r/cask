@@ -28,6 +28,20 @@ public enum CaskPaths {
     public static var cache: URL { support.appendingPathComponent("cache", isDirectory: true) }
     public static var logs: URL { home.appendingPathComponent("Library/Logs/Cask", isDirectory: true) }
 
+    /// Files shipped in Cask.app/Contents/Resources (works from the app and from Contents/Helpers/cask).
+    public static func resource(_ name: String) -> URL? {
+        var candidates: [URL] = []
+        if let custom = ProcessInfo.processInfo.environment["CASK_RESOURCES"] {
+            candidates.append(URL(fileURLWithPath: custom).appendingPathComponent(name))
+        }
+        if let exe = Bundle.main.executableURL?.resolvingSymlinksInPath() {
+            candidates.append(exe.deletingLastPathComponent().deletingLastPathComponent()
+                .appendingPathComponent("Resources").appendingPathComponent(name))
+        }
+        if let res = Bundle.main.resourceURL { candidates.append(res.appendingPathComponent(name)) }
+        return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
     public static func ensure() throws {
         for dir in [support, runtimes, bottles, components, cache, logs] {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

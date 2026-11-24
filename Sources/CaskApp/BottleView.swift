@@ -104,6 +104,15 @@ struct BottleView: View {
                     ForEach(GraphicsBackend.available) { Text($0.title).tag($0) }
                 }
                 if isSteam {
+                    Toggle(isOn: Binding(
+                        get: { !config.webhelperArguments.isEmpty },
+                        set: { config.webhelperArguments = $0 ? ["--in-process-gpu"] : [] })) {
+                        VStack(alignment: .leading) {
+                            Text("Steam window fix")
+                            Text("Runs Steam's UI with --in-process-gpu. Fixes “Unexpected Transport Error” (0x3008).")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                     Text("Steam starts games itself, so Automatic uses DXMT (or DXVK) for DirectX 10/11 games here. DirectX 9 games always use WineD3D.")
                         .font(.caption).foregroundStyle(.secondary)
                 }

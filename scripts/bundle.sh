@@ -24,6 +24,10 @@ plutil -replace CFBundleVersion -string "$BUILD" "$APP/Contents/Info.plist"
 iconutil -c icns Resources/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
 cp LICENSE "$APP/Contents/Resources/LICENSE"
 
+# Windows-side helper (steamwebhelper wrapper), cross-compiled with mingw-w64.
+command -v x86_64-w64-mingw32-gcc >/dev/null || brew install --quiet mingw-w64
+x86_64-w64-mingw32-gcc -O2 -municode -mwindows -s -o "$APP/Contents/Resources/cask-webhelper.exe" Resources/webhelper/webhelper.c
+
 # Ad-hoc signature (no paid Apple Developer account needed). Helper first, then the app.
 codesign --force --sign - "$APP/Contents/Helpers/cask"
 codesign --force --sign - "$APP"

@@ -27,11 +27,13 @@ public struct BottleConfig: Codable, Sendable, Equatable {
     public var pinned: [PinnedProgram] = []
     /// Extra arguments for steam.exe (Steam bottle only).
     public var steamArguments: [String] = []
+    /// Extra Chromium flags for Steam's UI (steamwebhelper) via Cask's wrapper. Empty = wrapper off.
+    public var webhelperArguments: [String] = ["--in-process-gpu"]
 
     public init() {}
 
     enum CodingKeys: String, CodingKey {
-        case windowsVersion, graphics, runtime, retina, msync, metalHUD, debugLog, environment, pinned, steamArguments
+        case windowsVersion, graphics, runtime, retina, msync, metalHUD, debugLog, environment, pinned, steamArguments, webhelperArguments
     }
 
     public init(from decoder: Decoder) throws {
@@ -47,6 +49,7 @@ public struct BottleConfig: Codable, Sendable, Equatable {
         environment = try c.decodeIfPresent([String: String].self, forKey: .environment) ?? d.environment
         pinned = try c.decodeIfPresent([PinnedProgram].self, forKey: .pinned) ?? d.pinned
         steamArguments = try c.decodeIfPresent([String].self, forKey: .steamArguments) ?? d.steamArguments
+        webhelperArguments = try c.decodeIfPresent([String].self, forKey: .webhelperArguments) ?? d.webhelperArguments
     }
 
     public static let windowsVersions: [(id: String, title: String)] = [
