@@ -1,0 +1,41 @@
+name: KosmicKrisp (x86_64)
+
+# LunarG ships KosmicKrisp for arm64 only, but Wine on macOS runs as x86_64 under Rosetta,
+# so Cask builds its own x86_64 KosmicKrisp (Mesa, MIT) + Vulkan loader (Apache-2.0) here.
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/kosmickrisp.yml", "scripts/build-kosmickrisp.sh"]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        run: |
+          set +e
+          scripts/build-kosmickrisp.sh 2>&1 | tee build.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            grep -E "(error|ERROR|Error)[: ]" build.log | grep -v "warning" | sort -u | head -12 | sed -E "s#^#::error::#"
+            tail -25 build.log | sed -E "s#^#::warning::#" | tail -10
+          fi
+          exit $status
+      - name: Upload to the "components" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view components >/dev/null 2>&1 || \
+            gh release create components --title "Components mirror" --prerelease \
+              --notes "Third-party components Cask downloads, with their original licenses inside."
+          gh release upload components dist/kosmickrisp-x86_64.tar.gz dist/kosmickrisp-version.txt --clobber
