@@ -15,6 +15,11 @@ XCODE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || tr
 sudo xcode-select -s "$XCODE"
 xcrun --show-sdk-version
 export MACOSX_DEPLOYMENT_TARGET=26.0
+# Metal 4 headers live only in Xcode 26's SDK; make every compiler use it (not the CLT macOS 15 SDK).
+export SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
+echo "SDKROOT=$SDKROOT"
+ls "$SDKROOT/System/Library/Frameworks/Metal.framework/Headers/MTL4ArgumentTable.h"
+export CC=/usr/bin/clang CXX=/usr/bin/clang++ OBJC=/usr/bin/clang OBJCXX=/usr/bin/clang++
 
 brew install --quiet meson ninja cmake pkg-config llvm libclc spirv-llvm-translator spirv-tools spirv-headers glslang bison flex >/dev/null
 export PATH="$(brew --prefix llvm)/bin:$(brew --prefix bison)/bin:$(brew --prefix flex)/bin:$PATH"
