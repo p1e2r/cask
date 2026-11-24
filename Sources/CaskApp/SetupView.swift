@@ -48,7 +48,7 @@ struct SetupView: View {
                 StatusRow(title: "VKD3D-Proton + KosmicKrisp",
                           detail: model.kosmicUnavailable.map { "DirectX 12, free. Unavailable: \($0)." }
                           ?? (model.hasVKD3D ? "DirectX 12 → Vulkan → Metal 4. Free, no Apple ID (experimental)"
-                              : "DirectX 12, free, no Apple ID (experimental). Downloads LunarG's Vulkan SDK once."),
+                              : "DirectX 12, free, no Apple ID (experimental)."),
                           ok: model.hasVKD3D) {
                     if model.kosmicUnavailable == nil {
                         Button(model.hasVKD3D ? "Update" : "Install") { model.installVKD3D() }

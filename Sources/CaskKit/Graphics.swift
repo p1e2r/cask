@@ -112,7 +112,8 @@ public enum Components {
         progress?("DXVK installed")
     }
 
-    static let vulkanSDKURL = URL(string: "https://sdk.lunarg.com/sdk/download/latest/mac/vulkan_sdk.zip")!
+    /// x86_64 KosmicKrisp + Vulkan loader built by Cask's CI (LunarG only ships arm64, but Wine runs under Rosetta).
+    static let kosmicMirror = URL(string: "https://github.com/p1e2r/cask/releases/download/components/kosmickrisp-x86_64.tar.gz")!
 
     /// Installs the free DirectX 12 stack: KosmicKrisp (taken from LunarG's open-source Vulkan SDK),
     /// upstream DXVK and vkd3d-proton.
@@ -146,56 +147,25 @@ public enum Components {
     }
 
     private static func installKosmicDriver(progress: ProgressHandler?) async throws {
-        let zip = CaskPaths.cache.appendingPathComponent("vulkan_sdk.zip")
-        progress?("Downloading LunarG Vulkan SDK (for KosmicKrisp, a few hundred MB)…")
-        try await Downloader.download(vulkanSDKURL, to: zip, progress: nil)
-        let staging = CaskPaths.cache.appendingPathComponent("vulkan-sdk-\(UUID().uuidString)")
-        defer {
-            try? FileManager.default.removeItem(at: staging)
-            try? FileManager.default.removeItem(at: zip)
+        let archive = CaskPaths.cache.appendingPathComponent("kosmickrisp-x86_64.tar.gz")
+        do {
+            try await Downloader.download(kosmicMirror, to: archive, progress: progress)
+        } catch {
+            throw CaskError("Couldn't download Cask's KosmicKrisp build (\(error.localizedDescription)). Try again later, or use D3DMetal for DirectX 12.")
         }
-        progress?("Unpacking the Vulkan SDK…")
-        try Shell.run("/usr/bin/ditto", ["-x", "-k", zip.path, staging.path])
-        FS.stripQuarantine(staging)
-
-        // The SDK is a Qt installer app; run it headless into a private folder (copy_only=1 = no /usr/local changes).
-        guard let installerApp = (FileManager.default.enumerator(at: staging, includingPropertiesForKeys: nil)?.allObjects as? [URL] ?? [])
-            .first(where: { $0.pathExtension == "app" }) else {
-            throw CaskError("Vulkan SDK download didn't contain its installer")
-        }
-        let macOSDir = installerApp.appendingPathComponent("Contents/MacOS")
-        guard let exe = (try? FileManager.default.contentsOfDirectory(at: macOSDir, includingPropertiesForKeys: nil))?.first else {
-            throw CaskError("Vulkan SDK installer is missing its executable")
-        }
-        let root = staging.appendingPathComponent("sdk")
-        progress?("Extracting KosmicKrisp from the Vulkan SDK…")
-        try Shell.run(exe.path, ["--root", root.path, "--accept-licenses", "--default-answer",
-                                 "--confirm-command", "install", "copy_only=1"])
-
-        func find(_ name: String) -> URL? {
-            (FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?.allObjects as? [URL] ?? [])
-                .first { $0.lastPathComponent == name && !$0.path.contains("/iOS/") }
-        }
-        guard let driver = find("libvulkan_kosmickrisp.dylib") else {
-            throw CaskError("This Vulkan SDK doesn't include KosmicKrisp")
-        }
-        guard let loader = find("libvulkan.1.dylib") else { throw CaskError("Vulkan loader not found in the SDK") }
-
-        // Wine runs as Intel code under Rosetta, so the driver must contain x86_64.
-        let archs = (try? Shell.run("/usr/bin/lipo", ["-archs", driver.path]).output) ?? ""
-        guard archs.contains("x86_64") else {
-            throw CaskError("LunarG's KosmicKrisp build is Apple-Silicon-only (\(archs.trimmingCharacters(in: .whitespacesAndNewlines))), but Wine runs as Intel code under Rosetta, so it can't load it yet. Use D3DMetal for DirectX 12 for now.")
-        }
-
+        defer { try? FileManager.default.removeItem(at: archive) }
         if FS.exists(kosmicDir) { try FileManager.default.removeItem(at: kosmicDir) }
-        try FileManager.default.createDirectory(at: kosmicDir, withIntermediateDirectories: true)
+        try Downloader.extract(archive, into: kosmicDir, progress: progress)
+
         let dylib = kosmicDir.appendingPathComponent("libvulkan_kosmickrisp.dylib")
-        try FileManager.default.copyItem(at: driver.resolvingSymlinksInPath(), to: dylib)
-        let loaderCopy = kosmicDir.appendingPathComponent("libvulkan.1.dylib")
-        try FileManager.default.copyItem(at: loader.resolvingSymlinksInPath(), to: loaderCopy)
+        let loader = kosmicDir.appendingPathComponent("libvulkan.1.dylib")
+        guard FS.exists(dylib), FS.exists(loader) else { throw CaskError("KosmicKrisp download is incomplete") }
+        let archs = (try? Shell.run("/usr/bin/lipo", ["-archs", dylib.path]).output) ?? ""
+        guard archs.contains("x86_64") else { throw CaskError("KosmicKrisp build is missing x86_64 (\(archs))") }
+
         // Wine may dlopen MoltenVK by name; point that name at the Vulkan loader so KosmicKrisp is used.
-        try FileManager.default.createSymbolicLink(at: kosmicDir.appendingPathComponent("libMoltenVK.dylib"),
-                                                   withDestinationURL: loaderCopy)
+        let alias = kosmicDir.appendingPathComponent("libMoltenVK.dylib")
+        if !FS.exists(alias) { try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: loader) }
         let icd: [String: Any] = [
             "file_format_version": "1.0.1",
             "ICD": ["library_path": dylib.path, "api_version": "1.4.0", "is_portability_driver": false],

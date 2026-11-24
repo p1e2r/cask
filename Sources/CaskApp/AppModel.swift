@@ -89,8 +89,9 @@ final class AppModel {
             if RuntimeManager.primary == nil { try await RuntimeManager.installWine(progress: p) }
             if !Components.hasDXMT { try? await Components.installDXMT(progress: p) }
             if !Components.hasDXVK { try? await Components.installDXVK(progress: p) }
+            // Optional: never let the experimental DX12 stack fail the whole setup.
             if Components.kosmicKrispUnavailableReason == nil && !Components.hasVKD3D {
-                try await Components.installKosmicKrisp(progress: p)
+                do { try await Components.installKosmicKrisp(progress: p) } catch { p("Free DirectX 12 skipped: \(error.localizedDescription)") }
             }
         }
     }

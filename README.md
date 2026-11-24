@@ -33,7 +33,7 @@ Cask is built on [Wine](https://www.winehq.org) (Gcenx's macOS builds) and runs 
 ### Free DirectX 12 (macOS 26+)
 On macOS 26 or newer, Set Up Everything also installs Proton's DirectX 12 stack: [vkd3d-proton](https://github.com/HansKristian-Work/vkd3d-proton)
 plus upstream [DXVK](https://github.com/doitsujin/dxvk), running on [KosmicKrisp](https://docs.mesa3d.org/drivers/kosmickrisp.html),
-LunarG's open-source Vulkan driver built on Metal 4. Cask downloads LunarG's free Vulkan SDK once and keeps only the driver.
+LunarG's open-source Vulkan driver built on Metal 4. LunarG only ships it for arm64, but Wine runs as x86_64 under Rosetta, so Cask's CI builds an x86_64 KosmicKrisp and Vulkan loader from source (MIT/Apache-2.0) and the app downloads that.
 No Apple ID is needed. On older macOS the option is hidden and disabled. It's experimental: games that need DirectX 12
 feature level 12_1 may not run.
 
@@ -99,7 +99,7 @@ open dist/Cask.app
 
 Wine (LGPL) · [Gcenx macOS Wine builds](https://github.com/Gcenx/macOS_Wine_builds) · [DXMT](https://github.com/3Shain/dxmt) ·
 [DXVK-macOS](https://github.com/Gcenx/DXVK-macOS) · DXVK · vkd3d-proton · KosmicKrisp (LunarG/Mesa) · MoltenVK · Apple Game Porting Toolkit (D3DMetal, user-supplied).
-Cask downloads these at runtime. The one exception is vkd3d-proton, which Cask mirrors unmodified as .tar.gz (LGPL, source linked inside), because older macOS `tar` can't unpack zstd.
+Cask downloads these at runtime. Exceptions, published in the `components` release with licenses and source links: vkd3d-proton (repacked from .tar.zst) and the x86_64 KosmicKrisp + Vulkan loader built from source.
 
 ## License
 
