@@ -25,7 +25,16 @@ jobs:
           swift --version
 
       - name: Build app
-        run: scripts/bundle.sh "${{ github.ref_type == 'tag' && github.ref_name || '0.1.0' }}"
+        shell: bash
+        run: |
+          set +e
+          scripts/bundle.sh "${{ github.ref_type == 'tag' && github.ref_name || '0.1.0' }}" 2>&1 | tee build.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            grep -E ": error: " build.log | sort -u | head -10 | sed -E "s#^(/[^:]+):([0-9]+):([0-9]+): error: (.*)#::error file=\1,line=\2,col=\3::\4#"
+            grep -vE ": (error|warning|note): " build.log | grep -iE "error|fatal" | sort -u | head -5 | sed -E "s#^#::error::#"
+          fi
+          exit $status
 
       - uses: actions/upload-artifact@v4
         with:
