@@ -1,0 +1,52 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          swift --version
+
+      - name: Build app
+        run: scripts/bundle.sh "${{ github.ref_type == 'tag' && github.ref_name || '0.1.0' }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cask
+          path: |
+            dist/Cask.dmg
+            dist/Cask.zip
+
+      - name: Publish "latest" pre-release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest dist/Cask.dmg dist/Cask.zip \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "Cask (latest build)" \
+            --notes "Automatic build of main @ ${GITHUB_SHA::7}. Open the DMG, drag Cask to Applications, then see the README for the first-launch Gatekeeper step."
+
+      - name: Publish tagged release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/Cask.dmg dist/Cask.zip --generate-notes
