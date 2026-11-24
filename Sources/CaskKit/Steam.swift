@@ -80,7 +80,7 @@ public enum WindowsSteam {
         }
         for exe in ["steam.exe", "steamwebhelper.exe"] {
             let key = #"HKCU\Software\Wine\AppDefaults\"# + exe + #"\DllOverrides"#
-            for dll in ["dxgi", "d3d10core", "d3d11", "d3d12"] {
+            for dll in ["dxgi", "d3d10core", "d3d11", "d3d12", "d3d12core"] {
                 try Wine.regAdd(bottle, key: key, value: dll, data: "builtin")
             }
         }

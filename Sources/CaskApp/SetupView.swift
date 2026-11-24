@@ -12,7 +12,7 @@ struct SetupView: View {
                     Text("Cask").font(.largeTitle.bold())
                     Text("Run Windows games and apps on your Mac. Free and open source.")
                         .foregroundStyle(.secondary)
-                    if !(model.hasWine && model.hasDXMT && model.hasDXVK) {
+                    if !(model.hasWine && model.hasDXMT && model.hasDXVK && (model.hasVKD3D || model.kosmicUnavailable != nil)) {
                         Button("Set Up Everything") { model.setUpEverything() }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
@@ -45,6 +45,16 @@ struct SetupView: View {
                           ok: model.hasDXVK) {
                     Button(model.hasDXVK ? "Update" : "Install") { model.installDXVK() }
                 }
+                StatusRow(title: "VKD3D-Proton + KosmicKrisp",
+                          detail: model.kosmicUnavailable.map { "DirectX 12, free. Unavailable: \($0)." }
+                          ?? (model.hasVKD3D ? "DirectX 12 → Vulkan → Metal 4. Free, no Apple ID (experimental)"
+                              : "DirectX 12, free, no Apple ID (experimental). Downloads LunarG's Vulkan SDK once."),
+                          ok: model.hasVKD3D) {
+                    if model.kosmicUnavailable == nil {
+                        Button(model.hasVKD3D ? "Update" : "Install") { model.installVKD3D() }
+                    }
+                }
+                .opacity(model.kosmicUnavailable == nil ? 1 : 0.55)
                 StatusRow(title: "D3DMetal", detail: model.hasD3DMetal
                           ? "DirectX 11/12 → Metal, from Apple's Game Porting Toolkit"
                           : model.waitingForGPTK
@@ -62,7 +72,7 @@ struct SetupView: View {
             } header: {
                 Text("Graphics")
             } footer: {
-                Text("Automatic graphics picks the best layer for each game: WineD3D for DirectX 9 and older, DXMT for 10/11, D3DMetal for 12.")
+                Text("Automatic picks per game: WineD3D for DirectX 9 and older, DXMT for 10/11, and for 12 the free VKD3D-Proton (macOS 26+) or D3DMetal if imported.")
             }
 
             Section {

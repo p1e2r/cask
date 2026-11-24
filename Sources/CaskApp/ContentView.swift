@@ -88,7 +88,7 @@ struct NewBottleSheet: View {
                     ForEach(BottleConfig.windowsVersions, id: \.id) { Text($0.title).tag($0.id) }
                 }
                 Picker("Graphics", selection: $graphics) {
-                    ForEach(GraphicsBackend.allCases) { Text($0.title).tag($0) }
+                    ForEach(GraphicsBackend.available) { Text($0.title).tag($0) }
                 }
             }
             HStack {

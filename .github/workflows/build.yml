@@ -59,3 +59,30 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/Cask.dmg dist/Cask.zip --generate-notes
+
+  # vkd3d-proton ships as .tar.zst, which older macOS tar can't unpack. Mirror it as .tar.gz
+  # (LGPL-2.1; license and source link kept inside the archive).
+  vkd3d-mirror:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Repack latest vkd3d-proton
+        run: |
+          set -euo pipefail
+          tag=$(gh api repos/HansKristian-Work/vkd3d-proton/releases/latest --jq .tag_name)
+          url=$(gh api repos/HansKristian-Work/vkd3d-proton/releases/latest --jq '.assets[] | select(.name | endswith(".tar.zst")) | .browser_download_url' | head -1)
+          curl -fsSL "$url" -o vkd3d.tar.zst
+          mkdir out && tar --zstd -xf vkd3d.tar.zst -C out
+          dir=$(ls out | head -1)
+          curl -fsSL https://raw.githubusercontent.com/HansKristian-Work/vkd3d-proton/master/LICENSE -o "out/$dir/LICENSE" || true
+          printf 'vkd3d-proton %s\nSource: https://github.com/HansKristian-Work/vkd3d-proton/tree/%s\nLicense: LGPL-2.1\n' "$tag" "$tag" > "out/$dir/SOURCE.txt"
+          tar -czf vkd3d-proton.tar.gz -C out "$dir"
+          echo "$tag" > vkd3d-version.txt
+      - name: Upload to the "components" release
+        run: |
+          gh release view components -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create components -R "$GITHUB_REPOSITORY" --title "Components mirror" \
+              --notes "Mirrors of third-party components Cask downloads (unmodified, original licenses inside)." --prerelease
+          gh release upload components vkd3d-proton.tar.gz vkd3d-version.txt -R "$GITHUB_REPOSITORY" --clobber

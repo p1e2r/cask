@@ -18,6 +18,9 @@ final class AppModel {
     var hasDXMT = false
     var hasDXVK = false
     var hasD3DMetal = false
+    var hasVKD3D = false
+    /// nil when the free DirectX 12 stack can run on this Mac.
+    var kosmicUnavailable: String?
     var steamInstalled = false
     var dxmtVersion: String?
     var dxvkVersion: String?
@@ -49,6 +52,8 @@ final class AppModel {
         dxvkVersion = Components.version(of: Components.dxvkDir)
         hasD3DMetal = RuntimeManager.find(RuntimeManager.d3dMetalName)?.hasD3DMetal == true
         steamInstalled = WindowsSteam.isInstalled
+        hasVKD3D = Components.hasVKD3D
+        kosmicUnavailable = Components.kosmicKrispUnavailableReason
     }
 
     func bottle(named name: String) -> Bottle? { bottles.first { $0.name == name } }
@@ -84,12 +89,16 @@ final class AppModel {
             if RuntimeManager.primary == nil { try await RuntimeManager.installWine(progress: p) }
             if !Components.hasDXMT { try? await Components.installDXMT(progress: p) }
             if !Components.hasDXVK { try? await Components.installDXVK(progress: p) }
+            if Components.kosmicKrispUnavailableReason == nil && !Components.hasVKD3D {
+                try await Components.installKosmicKrisp(progress: p)
+            }
         }
     }
 
     func installWine() { perform("Installing Wine…") { p in try await RuntimeManager.installWine(progress: p) } }
     func installDXMT() { perform("Installing DXMT…") { p in try await Components.installDXMT(progress: p) } }
     func installDXVK() { perform("Installing DXVK…") { p in try await Components.installDXVK(progress: p) } }
+    func installVKD3D() { perform("Installing free DirectX 12…") { p in try await Components.installKosmicKrisp(progress: p) } }
     func installRosetta() { perform("Installing Rosetta 2…") { _ in try RuntimeManager.installRosetta() } }
 
     func importD3DMetal() {

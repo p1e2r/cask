@@ -14,7 +14,8 @@ Cask is built on [Wine](https://www.winehq.org) (Gcenx's macOS builds) and runs 
   |---|---|---|
   | DirectX 1–9 (Portal, HL2, older games) | **WineD3D** → OpenGL | built into Wine |
   | DirectX 10/11 | **DXMT** → Metal (fallback: **DXVK-macOS** → MoltenVK) | downloaded automatically |
-  | DirectX 12 | **D3DMetal** from Apple's Game Porting Toolkit | you download GPTK, Cask imports it |
+  | DirectX 12 | **VKD3D-Proton + DXVK on KosmicKrisp** (free, experimental) | macOS 26+ on Apple Silicon; disabled on older macOS |
+  | DirectX 12 (alternative) | **D3DMetal** from Apple's Game Porting Toolkit | optional; you download GPTK, Cask imports it |
 - **32-bit games** work through Wine's WoW64 mode, no 32-bit macOS needed.
 - **Windows Steam** in its own bottle, installed for you.
 - **`cask %command%`**: a Proton-style launch option for *Mac* Steam (see below).
@@ -28,6 +29,13 @@ Cask is built on [Wine](https://www.winehq.org) (Gcenx's macOS builds) and runs 
    xattr -dr com.apple.quarantine /Applications/Cask.app
    ```
 3. In **Setup**, click **Set Up Everything** to install Wine, DXMT and DXVK. If Rosetta 2 is missing, Cask asks to install it.
+
+### Free DirectX 12 (macOS 26+)
+On macOS 26 or newer, Set Up Everything also installs Proton's DirectX 12 stack: [vkd3d-proton](https://github.com/HansKristian-Work/vkd3d-proton)
+plus upstream [DXVK](https://github.com/doitsujin/dxvk), running on [KosmicKrisp](https://docs.mesa3d.org/drivers/kosmickrisp.html),
+LunarG's open-source Vulkan driver built on Metal 4. Cask downloads LunarG's free Vulkan SDK once and keeps only the driver.
+No Apple ID is needed. On older macOS the option is hidden and disabled. It's experimental: games that need DirectX 12
+feature level 12_1 may not run.
 
 ### D3DMetal (optional, for DirectX 12)
 Apple only lets you download the Game Porting Toolkit after signing in with a free Apple ID, and its license
@@ -90,8 +98,8 @@ open dist/Cask.app
 ## Credits
 
 Wine (LGPL) · [Gcenx macOS Wine builds](https://github.com/Gcenx/macOS_Wine_builds) · [DXMT](https://github.com/3Shain/dxmt) ·
-[DXVK-macOS](https://github.com/Gcenx/DXVK-macOS) · MoltenVK · Apple Game Porting Toolkit (D3DMetal, user-supplied).
-Cask downloads these at runtime and doesn't redistribute them.
+[DXVK-macOS](https://github.com/Gcenx/DXVK-macOS) · DXVK · vkd3d-proton · KosmicKrisp (LunarG/Mesa) · MoltenVK · Apple Game Porting Toolkit (D3DMetal, user-supplied).
+Cask downloads these at runtime. The one exception is vkd3d-proton, which Cask mirrors unmodified as .tar.gz (LGPL, source linked inside), because older macOS `tar` can't unpack zstd.
 
 ## License
 

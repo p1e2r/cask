@@ -60,9 +60,9 @@ enum CaskCLI {
           If %command% is already a .exe it is run directly.
 
     COMMANDS:
-      cask setup                       Install Wine, DXMT and DXVK (checks Rosetta)
+      cask setup                       Install Wine, DXMT, DXVK and free DX12 (macOS 26+)
       cask run [-b BOTTLE] [-g GFX] PROGRAM [ARGS…]
-                                       Run a .exe/.msi/.bat/.lnk (GFX: auto, wined3d, dxmt, dxvk, d3dmetal)
+                                       Run a .exe/.msi/.bat/.lnk (GFX: auto, wined3d, dxmt, dxvk, d3dmetal, vkd3d)
       cask bottles                     List bottles
       cask create NAME                 Create a bottle
       cask steam install               Install Windows Steam into the "Steam" bottle
@@ -83,6 +83,7 @@ enum CaskCLI {
         say("Wine:       \(runtimes.isEmpty ? "not installed (cask setup)" : runtimes.map { "\($0.name) \($0.version)" }.joined(separator: ", "))")
         say("DXMT:       \(Components.hasDXMT ? (Components.version(of: Components.dxmtDir) ?? "installed") : "not installed")")
         say("DXVK:       \(Components.hasDXVK ? (Components.version(of: Components.dxvkDir) ?? "installed") : "not installed")")
+        say("VKD3D:      \(Components.hasVKD3D ? "installed (KosmicKrisp)" : Components.kosmicKrispUnavailableReason.map { "unavailable — \($0)" } ?? "not installed")")
         say("D3DMetal:   \(RuntimeManager.find(RuntimeManager.d3dMetalName)?.hasD3DMetal == true ? "imported" : "not imported")")
         say("Win Steam:  \(WindowsSteam.isInstalled ? "installed" : "not installed")")
         say("Bottles:    \(BottleManager.list().map(\.name).joined(separator: ", "))")
@@ -153,6 +154,11 @@ enum CaskCLI {
                 try await RuntimeManager.installWine(progress: progress)
                 try await Components.installDXMT(progress: progress)
                 try await Components.installDXVK(progress: progress)
+                if let reason = Components.kosmicKrispUnavailableReason {
+                    say("Skipping free DirectX 12 (VKD3D-Proton + KosmicKrisp): \(reason).")
+                } else {
+                    do { try await Components.installKosmicKrisp(progress: progress) } catch { say("Free DirectX 12 not installed: \(error)") }
+                }
                 say("Done. Optional: `cask import-d3dmetal <GPTK.dmg>` for DirectX 12, `cask steam install` for Windows Steam.")
             } catch { fail("\(error)") }
 

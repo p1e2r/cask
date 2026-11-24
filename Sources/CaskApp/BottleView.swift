@@ -101,7 +101,7 @@ struct BottleView: View {
                     ForEach(BottleConfig.windowsVersions, id: \.id) { Text($0.title).tag($0.id) }
                 }
                 Picker("Graphics", selection: $config.graphics) {
-                    ForEach(GraphicsBackend.allCases) { Text($0.title).tag($0) }
+                    ForEach(GraphicsBackend.available) { Text($0.title).tag($0) }
                 }
                 if isSteam {
                     Text("Steam starts games itself, so Automatic uses DXMT (or DXVK) for DirectX 10/11 games here. DirectX 9 games always use WineD3D.")
