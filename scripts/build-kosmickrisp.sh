@@ -60,9 +60,14 @@ echo "== Bundle non-system dependencies"
 # Copy any Homebrew dylibs the driver/loader link against and point them at @loader_path.
 for pass in 1 2 3; do
   for lib in "$OUT"/*.dylib; do
-    otool -L "$lib" | tail -n +2 | awk '{print $1}' | grep -E '^/(usr/local|opt/homebrew)' | while read -r dep; do
+    deps=$(otool -L "$lib" | tail -n +2 | awk '{print $1}' | grep -E '^/(usr/local|opt/homebrew)' || true)
+    for dep in $deps; do
       base=$(basename "$dep")
-      [ -f "$OUT/$base" ] || { cp "$dep" "$OUT/$base"; chmod u+w "$OUT/$base"; install_name_tool -id "@loader_path/$base" "$OUT/$base"; }
+      if [ ! -f "$OUT/$base" ]; then
+        cp "$dep" "$OUT/$base"
+        chmod u+w "$OUT/$base"
+        install_name_tool -id "@loader_path/$base" "$OUT/$base"
+      fi
       install_name_tool -change "$dep" "@loader_path/$base" "$lib"
     done
   done
