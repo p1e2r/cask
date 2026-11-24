@@ -30,7 +30,7 @@ public enum WindowsSteam {
 
     /// Creates the Steam bottle (if needed) and installs Windows Steam silently.
     @discardableResult
-    public static func install(progress: Progress? = nil) async throws -> Bottle {
+    public static func install(progress: ProgressHandler? = nil) async throws -> Bottle {
         let bottle: Bottle
         if let existing = self.bottle {
             bottle = existing

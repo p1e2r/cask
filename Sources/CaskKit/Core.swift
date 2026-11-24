@@ -8,8 +8,8 @@ public struct CaskError: LocalizedError, CustomStringConvertible, Sendable {
     public var description: String { message }
 }
 
-/// Progress callback: a short human-readable status line.
-public typealias Progress = @Sendable (String) -> Void
+/// ProgressHandler callback: a short human-readable status line.
+public typealias ProgressHandler = @Sendable (String) -> Void
 
 public enum CaskPaths {
     public static var home: URL { FileManager.default.homeDirectoryForCurrentUser }

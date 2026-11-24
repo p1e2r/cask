@@ -48,7 +48,7 @@ public enum Components {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    public static func installDXMT(progress: Progress? = nil) async throws {
+    public static func installDXMT(progress: ProgressHandler? = nil) async throws {
         try await Downloader.installLatest(
             repo: "3Shain/dxmt",
             preferences: [{ $0.name.hasSuffix(".tar.gz") && !$0.name.contains("debug") }, { $0.name.hasSuffix(".tar.gz") }, { $0.name.hasSuffix(".zip") }],
@@ -57,7 +57,7 @@ public enum Components {
         progress?("DXMT installed")
     }
 
-    public static func installDXVK(progress: Progress? = nil) async throws {
+    public static func installDXVK(progress: ProgressHandler? = nil) async throws {
         try await Downloader.installLatest(
             repo: "Gcenx/DXVK-macOS",
             preferences: [{ $0.name.hasSuffix(".tar.gz") && $0.name.contains("async") }, { $0.name.hasSuffix(".tar.gz") }],

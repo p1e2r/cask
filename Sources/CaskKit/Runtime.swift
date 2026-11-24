@@ -88,7 +88,7 @@ public enum RuntimeManager {
 
     /// Downloads the newest Gcenx WineHQ build (Staging preferred: it carries the macOS/Rosetta and Steam fixes).
     @discardableResult
-    public static func installWine(progress: Progress? = nil) async throws -> WineRuntime {
+    public static func installWine(progress: ProgressHandler? = nil) async throws -> WineRuntime {
         try CaskPaths.ensure()
         let dest = CaskPaths.runtimes.appendingPathComponent(defaultName)
         func archive(_ a: GitHubRelease.Asset) -> Bool { a.name.hasSuffix(".tar.xz") || a.name.hasSuffix(".tar.gz") }
@@ -115,7 +115,7 @@ public enum RuntimeManager {
     /// `redist/lib` merged in. `source` may be the GPTK .dmg, a mounted volume, or any folder containing `redist`.
     /// D3DMetal can't be redistributed, so the user supplies their own download from developer.apple.com.
     @discardableResult
-    public static func importD3DMetal(from source: URL, progress: Progress? = nil) throws -> WineRuntime {
+    public static func importD3DMetal(from source: URL, progress: ProgressHandler? = nil) throws -> WineRuntime {
         guard let base = find(defaultName) else { throw CaskError("Install Wine first") }
         var mounts: [String] = []
         defer { for m in mounts.reversed() { _ = try? Shell.run("/usr/bin/hdiutil", ["detach", m, "-quiet"], check: false) } }

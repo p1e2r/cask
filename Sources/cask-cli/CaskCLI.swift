@@ -26,7 +26,7 @@ enum CaskCLI {
         _ = try? Shell.run("/usr/bin/osascript", ["-e", "display notification \"\(escaped)\" with title \"Cask\""], check: false)
     }
 
-    nonisolated static let progress: Progress = { line in CaskCLI.say(line) }
+    nonisolated static let progress: ProgressHandler = { line in CaskCLI.say(line) }
 
     static func takeOption(_ names: [String]) -> String? {
         guard let i = args.firstIndex(where: { names.contains($0) }), i + 1 < args.count else { return nil }

@@ -54,7 +54,7 @@ final class AppModel {
     func bottle(named name: String) -> Bottle? { bottles.first { $0.name == name } }
 
     /// Runs blocking/async engine work off the main thread with a status line.
-    func perform(_ title: String, _ work: @escaping @Sendable (_ progress: @escaping Progress) async throws -> Void) {
+    func perform(_ title: String, _ work: @escaping @Sendable (_ progress: @escaping ProgressHandler) async throws -> Void) {
         guard busy == nil else {
             lastError = "Wait for “\(busy ?? "")” to finish first."
             return
@@ -62,7 +62,7 @@ final class AppModel {
         busy = title
         jobID += 1
         let id = jobID
-        let report: Progress = { line in
+        let report: ProgressHandler = { line in
             Task { @MainActor in if self.jobID == id && self.busy != nil { self.busy = line } }
         }
         Task {

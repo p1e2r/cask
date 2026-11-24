@@ -125,7 +125,7 @@ public enum BottleManager {
 
     /// Creates and boots a new Wine prefix.
     @discardableResult
-    public static func create(_ rawName: String, config: BottleConfig = BottleConfig(), progress: Progress? = nil) throws -> Bottle {
+    public static func create(_ rawName: String, config: BottleConfig = BottleConfig(), progress: ProgressHandler? = nil) throws -> Bottle {
         try CaskPaths.ensure()
         let name = sanitize(rawName)
         let dir = CaskPaths.bottles.appendingPathComponent(name, isDirectory: true)
@@ -143,7 +143,7 @@ public enum BottleManager {
     }
 
     /// Runs wineboot and applies the bottle's registry settings.
-    public static func initialize(_ bottle: Bottle, progress: Progress? = nil) throws {
+    public static func initialize(_ bottle: Bottle, progress: ProgressHandler? = nil) throws {
         progress?("Setting up Windows in “\(bottle.name)” (first boot takes a minute)…")
         try Wine.run(bottle, ["wineboot", "--init"], wait: true)
         try Wine.waitForServer(bottle)
@@ -151,7 +151,7 @@ public enum BottleManager {
     }
 
     /// Pushes Windows version and Retina mode into the prefix registry.
-    public static func applySettings(_ bottle: Bottle, progress: Progress? = nil) throws {
+    public static func applySettings(_ bottle: Bottle, progress: ProgressHandler? = nil) throws {
         progress?("Applying settings…")
         try Wine.run(bottle, ["winecfg", "-v", bottle.config.windowsVersion], wait: true)
         try Wine.regAdd(bottle, key: #"HKCU\Software\Wine\Mac Driver"#, value: "RetinaMode", data: bottle.config.retina ? "y" : "n")

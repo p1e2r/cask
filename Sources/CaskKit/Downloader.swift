@@ -25,7 +25,7 @@ public enum Downloader {
     }
 
     /// Downloads `url` to `dest`, replacing anything already there.
-    public static func download(_ url: URL, to dest: URL, progress: Progress? = nil) async throws {
+    public static func download(_ url: URL, to dest: URL, progress: ProgressHandler? = nil) async throws {
         progress?("Downloading \(url.lastPathComponent)…")
         var request = URLRequest(url: url)
         request.setValue("Cask", forHTTPHeaderField: "User-Agent")
@@ -39,7 +39,7 @@ public enum Downloader {
     }
 
     /// Extracts a .tar.xz / .tar.gz / .zip with the system bsdtar.
-    public static func extract(_ archive: URL, into dir: URL, progress: Progress? = nil) throws {
+    public static func extract(_ archive: URL, into dir: URL, progress: ProgressHandler? = nil) throws {
         progress?("Unpacking \(archive.lastPathComponent)…")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         try Shell.run("/usr/bin/tar", ["-xf", archive.path, "-C", dir.path])
@@ -53,7 +53,7 @@ public enum Downloader {
         repo: String,
         preferences: [(GitHubRelease.Asset) -> Bool],
         into dest: URL,
-        progress: Progress? = nil
+        progress: ProgressHandler? = nil
     ) async throws -> String {
         progress?("Checking \(repo) for the latest release…")
         let release = try await latestRelease(repo)
